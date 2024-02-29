@@ -1,21 +1,8 @@
 # eye
 
-Eye mechanism
+Eye mechanism, original project [Nilheim Mechatronics](http://www.nilheim.co.uk/eye-mechanisms.html)
 
-## Hardware
+## Contents
 
-* Arduino
-* [Adafruit PCA9685 PWM Servo](https://www.adafruit.com/product/815), learn [more](https://learn.adafruit.com/16-channel-pwm-servo-driver)
+* [Wiki](https://github.com/cmioci/eye/wiki)
 
-## Arduino
-
-pin|description
----|-----------
-A0 |joystick Y-axis
-A1 |joystick X-axis
-A2 |potentiometer
-2  |button
-
-## Libs
-
-* [Adafruit servo driver library](https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library)

@@ -19,42 +19,32 @@
 #define POTENTIOMETER A2
 #define BUTTON        2
 
-#define SERVOMIN  140 // this is the 'minimum' pulse length count (out of 4096)
-#define SERVOMAX  520 // this is the 'maximum' pulse length count (out of 4096)
+enum SERVO_CHANNEL {EYES_X = 0,         //#0
+                    EYES_Y,             //#1
+                    EYE_DX_LID_UP,      //#2
+                    EYE_DX_LID_DOWN,    //#3
+                    EYE_SX_LID_UP,      //#4
+                    EYE_SX_LID_DOWN};   //#5
 
+//Board 0: Address = 0x40 Offset = binary 00000 (no jumpers required)
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); 
 
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+//eyes
+int x, y;
+int eyesX, eyesY;
 
-// our servo # counter
-uint8_t servonum = 0;
-
-int xval;
-int yval;
-
-int lexpulse;
-int rexpulse;
-
-int leypulse;
-int reypulse;
-
-int uplidpulse;
-int lolidpulse;
-int altuplidpulse;
-int altlolidpulse;
-
-int trimval;
-
-const int analogInPin = A0;
-int sensorValue = 0;
-int outputValue = 0;
-int switchval = 0;
+//lid
+int lidUpEyeDx, lidDownEyeDx;
+int lidUpEyeSx, lidDownEyeSx;
+int lidTrim   = 0;
+int lidButton = 0;
 
 void setup() {
     Serial.begin(9600);
-    Serial.println("8 channel Servo test!");
+    Serial.println("start");
 
-    pinMode(analogInPin, INPUT);
-    pinMode(2, INPUT);
+    pinMode(POTENTIOMETER, INPUT);
+    pinMode(BUTTON, INPUT);
  
     pwm.begin();
     pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
@@ -62,64 +52,48 @@ void setup() {
     delay(10);
 }
 
-// you can use this function if you'd like to set the pulse length in seconds
-// e.g. setServoPulse(0, 0.001) is a ~1 millisecond pulse width. its not precise!
-void setServoPulse(uint8_t n, double pulse) {
-    double pulselength;
-  
-    pulselength = 1000000;   // 1,000,000 us per second
-    pulselength /= 60;   // 60 Hz
-    Serial.print(pulselength); Serial.println(" us per period"); 
-    pulselength /= 4096;  // 12 bits of resolution
-    Serial.print(pulselength); Serial.println(" us per bit"); 
-    pulse *= 1000000;  // convert to us
-    pulse /= pulselength;
-    Serial.println(pulse);
-}
-
 void loop() {
 
-    xval = analogRead(JOYSTICK_X);
-    lexpulse = map(xval, 0, 1023, 220, 440);
-    rexpulse = lexpulse;
+    //eyes position
+    x = analogRead(JOYSTICK_X);
+    y = analogRead(JOYSTICK_Y);
+    eyesX = map(x, 0, 1023, 220, 440);  //converting from Degrees to pulse length
+    eyesY = map(y, 0, 1023, 250, 500);
 
-    switchval = digitalRead(BUTTON);
-        
-    yval = analogRead(JOYSTICK_Y);
-    leypulse = map(yval, 0, 1023, 250, 500);
-    reypulse = map(yval, 0, 1023, 400, 280);
+    //lid trim
+    lidTrim = analogRead(POTENTIOMETER);
+    lidTrim = map(lidTrim, 320, 580, -40, 40);
 
-    trimval = analogRead(POTENTIOMETER);
-    trimval = map(trimval, 320, 580, -40, 40);
+    lidUpEyeDx = map(y, 0, 1023, 400, 280);
+    lidUpEyeDx -= (lidTrim - 40);
+    lidUpEyeDx = constrain(lidUpEyeDx, 280, 400);
+    lidUpEyeSx = 680 - lidUpEyeDx;
 
-    uplidpulse = map(yval, 0, 1023, 400, 280);
-    uplidpulse -= (trimval-40);
-    uplidpulse = constrain(uplidpulse, 280, 400);
-
-    altuplidpulse = 680-uplidpulse;
-
-    lolidpulse = map(yval, 0, 1023, 410, 280);
-    lolidpulse += (trimval/2);
-    lolidpulse = constrain(lolidpulse, 280, 400);      
-    altlolidpulse = 680-lolidpulse;
+    lidDownEyeDx = map(y, 0, 1023, 410, 280);
+    lidDownEyeDx += (lidTrim / 2);
+    lidDownEyeDx = constrain(lidDownEyeDx, 280, 400);      
+    lidDownEyeSx = 680 - lidDownEyeDx;
  
-    pwm.setPWM(0, 0, lexpulse);
-    pwm.setPWM(1, 0, leypulse);
+    //eyes
+    pwm.setPWM(EYES_X, 0, eyesX);
+    pwm.setPWM(EYES_Y, 0, eyesY);
 
-    if (switchval == HIGH) {
-        pwm.setPWM(2, 0, 400);
-        pwm.setPWM(3, 0, 240);
-        pwm.setPWM(4, 0, 240);
-        pwm.setPWM(5, 0, 400);
+    //lid
+    lidButton = digitalRead(BUTTON);
+    if (lidButton == HIGH) {
+        pwm.setPWM(EYE_DX_LID_UP  , 0, 400);
+        pwm.setPWM(EYE_DX_LID_DOWN, 0, 240);
+        pwm.setPWM(EYE_SX_LID_UP  , 0, 240);
+        pwm.setPWM(EYE_SX_LID_DOWN, 0, 400);
     }
-    else if (switchval == LOW) {
-        pwm.setPWM(2, 0, uplidpulse);
-        pwm.setPWM(3, 0, lolidpulse);
-        pwm.setPWM(4, 0, altuplidpulse);
-        pwm.setPWM(5, 0, altlolidpulse);
+    else if (lidButton == LOW) {
+        pwm.setPWM(EYE_DX_LID_UP,   0, lidUpEyeDx);
+        pwm.setPWM(EYE_DX_LID_DOWN, 0, lidDownEyeDx);
+        pwm.setPWM(EYE_SX_LID_UP,   0, lidUpEyeSx);
+        pwm.setPWM(EYE_SX_LID_DOWN, 0, lidDownEyeSx);
     }
 
-    Serial.println(trimval);
+    Serial.println(trim);
       
     delay(5);
 }
