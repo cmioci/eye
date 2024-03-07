@@ -2,9 +2,7 @@
  * project....: Eye mechanism
  * creation...: 28/02/2024
  * updated....: 03/03/2024
- * ArduinoSoftware(IDE): 1.8.9
- * WebInfo.............: ---
- * author.....: cmioci
+ * version....: 0.0.1
  * description: eyes control
  */
 #include <Wire.h>
